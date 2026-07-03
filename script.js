@@ -1,4 +1,4 @@
-// 売上記録タンタン Ver2.0 Firebase版
+// 売上記録タンタン Ver2.2 Firebase版（Googleログインをpopup方式へ変更）
 // 会計処理は行わず、日々の記録とCSV出力に役割を限定する。
 // 保存先は Firebase Firestore。ブラウザごとのローカル保存は使わない。
 
@@ -6,9 +6,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  getRedirectResult,
   onAuthStateChanged,
-  signInWithRedirect,
+  signInWithPopup,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
@@ -264,11 +263,6 @@ function initializeFirebase() {
   setAppEnabled(false);
   setAuthStatus("ログインしてください。", "note");
 
-  getRedirectResult(auth).catch((error) => {
-    console.error(error);
-    setAuthStatus(formatAuthError(error), "error");
-  });
-
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (!user) {
@@ -331,8 +325,8 @@ async function loginWithGoogle() {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
-    setAuthStatus("Googleログイン画面へ移動します。", "note");
-    await signInWithRedirect(auth, provider);
+    setAuthStatus("Googleログイン画面を開きます。", "note");
+    await signInWithPopup(auth, provider);
   } catch (error) {
     console.error(error);
     setAuthStatus(formatAuthError(error), "error");
