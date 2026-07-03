@@ -1,4 +1,4 @@
-// 売上記録タンタン Ver1
+// 売上記録タンタン Ver1.2
 // 会計処理は行わず、日々の記録とCSV出力に役割を限定する。
 
 const STORAGE_KEY = "tantanRecordsV1";
@@ -48,6 +48,40 @@ const accountTitleMap = {
   手数料: "支払手数料",
   その他: "雑費",
 };
+
+// freeeのエクセルインポート用サンプルファイルに合わせるための設定。
+// 税区分などがfreee側の運用と違う場合は、まずここだけ修正する。
+const freeeConfig = {
+  incomeTaxCategory: "課税売上10%",
+  expenseTaxCategory: "課対仕入10%",
+  taxCalculationType: "税込",
+  settlementAccount: "現金",
+};
+
+// freeeサンプルファイルの列順。CSV出力はこの並びで作成する。
+const freeeHeaders = [
+  "収支区分",
+  "管理番号",
+  "発生日",
+  "決済期日",
+  "取引先",
+  "取引先コード",
+  "勘定科目",
+  "税区分",
+  "金額",
+  "税計算区分",
+  "税額",
+  "備考",
+  "品目",
+  "部門",
+  "メモタグ（複数指定可、カンマ区切り）",
+  "決済日",
+  "決済口座",
+  "決済金額",
+  "セグメント1",
+  "セグメント2",
+  "セグメント3",
+];
 
 let records = [];
 
@@ -452,35 +486,50 @@ function deleteRecord(id) {
   render();
 }
 
-// freee用CSV。列名や税区分は運用に合わせてこの関数だけ修正できる。
+// freee用CSV。freeeのエクセルインポート用サンプルファイルと同じ21列で出力する。
+// 金額はサンプルに合わせて、収入・支出ともプラス値で出力する。
+// もしfreee側で「支出はマイナス金額」として取り込む画面を使う場合は、
+// buildFreeeRow() の amount 部分だけを調整すればよい。
 function buildFreeeCsvRows(targetRecords) {
-  const headers = [
-    "収支区分",
-    "発生日",
-    "取引先",
-    "勘定科目",
-    "税区分",
-    "金額",
-    "決済日",
-    "決済口座",
-    "備考",
-  ];
-
   const rows = targetRecords
+    .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map((record) => [
-      record.type === "income" ? "収入" : "支出",
-      record.date,
-      record.freeePartnerName || "",
-      record.accountTitle || "",
-      "対象外",
-      record.amount,
-      record.date,
-      "現金",
-      record.memo || "",
-    ]);
+    .map(buildFreeeRow);
 
-  return [headers, ...rows];
+  return [freeeHeaders, ...rows];
+}
+
+function buildFreeeRow(record) {
+  const isIncome = record.type === "income";
+  const partnerName = record.freeePartnerName || record.partnerName || "";
+  const amount = Math.abs(Number(record.amount || 0));
+  const taxCategory = isIncome
+    ? freeeConfig.incomeTaxCategory
+    : freeeConfig.expenseTaxCategory;
+
+  return [
+    isIncome ? "収入" : "支出",                  // 収支区分
+    "",                                           // 管理番号
+    record.date,                                  // 発生日
+    "",                                           // 決済期日
+    partnerName,                                  // 取引先
+    "",                                           // 取引先コード
+    record.accountTitle || (isIncome ? "売上高" : "雑費"), // 勘定科目
+    taxCategory,                                  // 税区分
+    amount,                                       // 金額
+    freeeConfig.taxCalculationType,               // 税計算区分
+    "",                                           // 税額。freee側で自動計算・確認する前提
+    record.memo || "",                            // 備考
+    record.category || "",                        // 品目
+    "",                                           // 部門
+    "",                                           // メモタグ
+    record.date,                                  // 決済日
+    freeeConfig.settlementAccount,                // 決済口座
+    amount,                                       // 決済金額
+    "",                                           // セグメント1
+    "",                                           // セグメント2
+    "",                                           // セグメント3
+  ];
 }
 
 function downloadFreeeCsv() {
@@ -493,7 +542,8 @@ function downloadFreeeCsv() {
   const rows = buildFreeeCsvRows(filtered);
   const fileName = `freee_tantan_${els.monthFilter.value || "all"}.csv`;
   downloadCsv(rows, fileName);
-  showMessage(els.csvMessage, "freee取込用CSVを出力しました。", "success");
+  const count = filtered.length;
+  showMessage(els.csvMessage, `freee取込用CSVを作成しました。${count}件出力しました。`, "success");
 }
 
 function buildBackupCsvRows(targetRecords) {
