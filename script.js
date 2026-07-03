@@ -1,9 +1,38 @@
-// 売上記録タンタン Ver1.2
+// 売上記録タンタン Ver2.0 Firebase版
 // 会計処理は行わず、日々の記録とCSV出力に役割を限定する。
+// 保存先はlocalStorageではなく Firebase Firestore。
 
-const STORAGE_KEY = "tantanRecordsV1";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-// Ver1では管理画面を作らず、取引先マスタは配列で管理する。
+// ここをFirebase ConsoleのWebアプリ設定に差し替える。
+// apiKey自体は秘密鍵ではありません。安全性はFirestoreルールで守ります。
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID",
+};
+
+const OLD_LOCAL_STORAGE_KEY = "tantanRecordsV1";
+const COLLECTION_NAME = "records";
+
 const partners = [
   {
     id: "sakaisuji_honmachi_3",
@@ -49,8 +78,6 @@ const accountTitleMap = {
   その他: "雑費",
 };
 
-// freeeのエクセルインポート用サンプルファイルに合わせるための設定。
-// 税区分などがfreee側の運用と違う場合は、まずここだけ修正する。
 const freeeConfig = {
   incomeTaxCategory: "課税売上10%",
   expenseTaxCategory: "課対仕入10%",
@@ -58,7 +85,6 @@ const freeeConfig = {
   settlementAccount: "現金",
 };
 
-// freeeサンプルファイルの列順。CSV出力はこの並びで作成する。
 const freeeHeaders = [
   "収支区分",
   "管理番号",
@@ -83,6 +109,10 @@ const freeeHeaders = [
   "セグメント3",
 ];
 
+let app = null;
+let auth = null;
+let db = null;
+let currentUser = null;
 let records = [];
 
 const els = {};
@@ -92,9 +122,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initializeDates();
   populatePartnerSelects();
   populateCategorySelects();
-  records = loadData();
   bindEvents();
   render();
+  initializeFirebase();
 });
 
 function bindElements() {
@@ -126,6 +156,11 @@ function bindElements() {
   els.downloadBackupCsv = document.getElementById("downloadBackupCsv");
   els.backupImport = document.getElementById("backupImport");
   els.csvMessage = document.getElementById("csvMessage");
+
+  els.authStatus = document.getElementById("authStatus");
+  els.loginButton = document.getElementById("loginButton");
+  els.logoutButton = document.getElementById("logoutButton");
+  els.migrateLocalButton = document.getElementById("migrateLocalButton");
 
   els.editModal = document.getElementById("editModal");
   els.editForm = document.getElementById("editForm");
@@ -201,6 +236,10 @@ function bindEvents() {
   els.downloadBackupCsv.addEventListener("click", downloadBackupCsv);
   els.backupImport.addEventListener("change", importBackupCsv);
 
+  els.loginButton.addEventListener("click", loginWithGoogle);
+  els.logoutButton.addEventListener("click", logout);
+  els.migrateLocalButton.addEventListener("click", migrateOldLocalStorageData);
+
   els.editForm.addEventListener("submit", handleEditSubmit);
   els.editType.addEventListener("change", updateEditCategoryVisibility);
   els.cancelEdit.addEventListener("click", closeEditModal);
@@ -209,18 +248,161 @@ function bindEvents() {
   });
 }
 
-// 将来クラウド保存へ移行しやすいよう、保存処理は関数に分離する。
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+function initializeFirebase() {
+  if (!isFirebaseConfigured()) {
+    setAuthStatus("Firebase設定が未入力です。script.js の firebaseConfig を設定してください。", "error");
+    setAppEnabled(false);
+    return;
+  }
+
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+
+  setAppEnabled(false);
+  setAuthStatus("ログインしてください。", "note");
+
+  onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
+    if (!user) {
+      records = [];
+      render();
+      setAppEnabled(false);
+      setAuthStatus("ログインしてください。", "note");
+      return;
+    }
+
+    setAppEnabled(true);
+    setAuthStatus(`ログイン中：${user.email || user.uid}`, "success");
+    await refreshFromFirebase();
+  });
 }
 
-function loadData() {
+function isFirebaseConfigured() {
+  return firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("YOUR_") &&
+    firebaseConfig.projectId && !firebaseConfig.projectId.includes("YOUR_");
+}
+
+function setAuthStatus(text, type) {
+  if (!els.authStatus) return;
+  els.authStatus.textContent = text;
+  els.authStatus.className = type === "error" ? "message error" : type === "success" ? "message success" : "note";
+}
+
+function setAppEnabled(enabled) {
+  const elements = [
+    els.mainForm,
+    els.expenseForm,
+    els.downloadFreeeIncomeCsv,
+    els.downloadFreeeExpenseCsv,
+    els.downloadBackupCsv,
+    els.backupImport,
+    els.migrateLocalButton,
+  ];
+
+  elements.forEach((element) => {
+    if (!element) return;
+    const controls = element.matches && element.matches("form")
+      ? element.querySelectorAll("input, select, textarea, button")
+      : [element];
+    controls.forEach((control) => {
+      control.disabled = !enabled;
+    });
+  });
+
+  if (els.loginButton) els.loginButton.disabled = enabled || !isFirebaseConfigured();
+  if (els.logoutButton) els.logoutButton.disabled = !enabled;
+}
+
+async function loginWithGoogle() {
+  if (!auth) return;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    await signInWithPopup(auth, new GoogleAuthProvider());
   } catch (error) {
-    console.error("データ読み込みに失敗しました", error);
-    return [];
+    console.error(error);
+    setAuthStatus("ログインに失敗しました。Firebaseの認証設定を確認してください。", "error");
+  }
+}
+
+async function logout() {
+  if (!auth) return;
+  await signOut(auth);
+}
+
+function userRecordsCollection() {
+  if (!currentUser) throw new Error("ログインが必要です。")
+  return collection(db, "users", currentUser.uid, COLLECTION_NAME);
+}
+
+async function refreshFromFirebase() {
+  records = await loadData();
+  render();
+}
+
+async function saveData() {
+  if (!currentUser) throw new Error("ログインが必要です。");
+  const col = userRecordsCollection();
+  await Promise.all(records.map((record) => setDoc(doc(col, record.id), record)));
+}
+
+async function saveRecord(record) {
+  if (!currentUser) throw new Error("ログインが必要です。");
+  await setDoc(doc(userRecordsCollection(), record.id), record);
+}
+
+async function deleteRecordFromFirebase(id) {
+  if (!currentUser) throw new Error("ログインが必要です。");
+  await deleteDoc(doc(userRecordsCollection(), id));
+}
+
+async function loadData() {
+  if (!currentUser) return [];
+  const snapshot = await getDocs(userRecordsCollection());
+  return snapshot.docs.map((docSnap) => normalizeRecord(docSnap.data()));
+}
+
+function normalizeRecord(record) {
+  return {
+    id: record.id || createId(),
+    date: record.date || "",
+    type: record.type || "expense",
+    partnerId: record.partnerId || "",
+    partnerName: record.partnerName || "",
+    freeePartnerName: record.freeePartnerName || "",
+    amount: Number(record.amount || 0),
+    category: record.category || "その他",
+    accountTitle: record.accountTitle || (record.type === "income" ? "売上高" : "雑費"),
+    memo: record.memo || "",
+    sourceGroupId: record.sourceGroupId || "",
+    createdAt: record.createdAt || new Date().toISOString(),
+    updatedAt: record.updatedAt || new Date().toISOString(),
+  };
+}
+
+async function migrateOldLocalStorageData() {
+  if (!currentUser) {
+    showMessage(els.csvMessage, "先にログインしてください。", "error");
+    return;
+  }
+
+  const raw = localStorage.getItem(OLD_LOCAL_STORAGE_KEY);
+  if (!raw) {
+    showMessage(els.csvMessage, "このブラウザに移行できる旧データはありません。", "error");
+    return;
+  }
+
+  try {
+    const oldRecords = JSON.parse(raw).map(normalizeRecord);
+    const existingIds = new Set(records.map((record) => record.id));
+    const newItems = oldRecords.filter((record) => !existingIds.has(record.id));
+
+    records = records.concat(newItems);
+    await saveData();
+    render();
+    showMessage(els.csvMessage, `${newItems.length}件をFirebaseへ移行しました。`, "success");
+  } catch (error) {
+    console.error(error);
+    showMessage(els.csvMessage, "旧データの移行に失敗しました。", "error");
   }
 }
 
@@ -229,8 +411,13 @@ function updateDefaultTransportation() {
   els.mainTransport.value = partner ? partner.defaultTransportation : "";
 }
 
-function handleMainSubmit(event) {
+async function handleMainSubmit(event) {
   event.preventDefault();
+
+  if (!currentUser) {
+    showMessage(els.mainMessage, "先にログインしてください。", "error");
+    return;
+  }
 
   const date = els.mainDate.value;
   const partner = findPartner(els.mainPartner.value);
@@ -277,15 +464,25 @@ function handleMainSubmit(event) {
     }));
   }
 
-  records = records.concat(newRecords);
-  saveData();
-  resetMainFormKeepDateAndPartner();
-  render();
-  showMessage(els.mainMessage, "登録しました。", "success");
+  try {
+    await Promise.all(newRecords.map(saveRecord));
+    records = records.concat(newRecords);
+    resetMainFormKeepDateAndPartner();
+    render();
+    showMessage(els.mainMessage, "登録しました。", "success");
+  } catch (error) {
+    console.error(error);
+    showMessage(els.mainMessage, "保存に失敗しました。", "error");
+  }
 }
 
-function handleExpenseSubmit(event) {
+async function handleExpenseSubmit(event) {
   event.preventDefault();
+
+  if (!currentUser) {
+    showMessage(els.expenseMessage, "先にログインしてください。", "error");
+    return;
+  }
 
   const date = els.expenseDate.value;
   const category = els.expenseCategory.value;
@@ -298,7 +495,7 @@ function handleExpenseSubmit(event) {
     return;
   }
 
-  records.push(createRecord({
+  const record = createRecord({
     date,
     type: "expense",
     partner,
@@ -307,13 +504,19 @@ function handleExpenseSubmit(event) {
     accountTitle: accountTitleMap[category] || "雑費",
     memo,
     sourceGroupId: createId(),
-  }));
+  });
 
-  saveData();
-  els.expenseAmount.value = "";
-  els.expenseMemo.value = "";
-  render();
-  showMessage(els.expenseMessage, "経費を追加しました。", "success");
+  try {
+    await saveRecord(record);
+    records.push(record);
+    els.expenseAmount.value = "";
+    els.expenseMemo.value = "";
+    render();
+    showMessage(els.expenseMessage, "経費を追加しました。", "success");
+  } catch (error) {
+    console.error(error);
+    showMessage(els.expenseMessage, "保存に失敗しました。", "error");
+  }
 }
 
 function createRecord({ date, type, partner, amount, category, accountTitle, memo, sourceGroupId }) {
@@ -417,6 +620,9 @@ function renderRecordList(filtered) {
   }).join("");
 }
 
+window.openEditModal = openEditModal;
+window.deleteRecord = deleteRecord;
+
 function openEditModal(id) {
   const record = records.find((item) => item.id === id);
   if (!record) return;
@@ -440,7 +646,7 @@ function updateEditCategoryVisibility() {
   els.editCategoryLabel.style.display = els.editType.value === "expense" ? "grid" : "none";
 }
 
-function handleEditSubmit(event) {
+async function handleEditSubmit(event) {
   event.preventDefault();
 
   const id = els.editId.value;
@@ -457,7 +663,7 @@ function handleEditSubmit(event) {
     return;
   }
 
-  records[recordIndex] = {
+  const updatedRecord = {
     ...records[recordIndex],
     date: els.editDate.value,
     type,
@@ -471,27 +677,34 @@ function handleEditSubmit(event) {
     updatedAt: new Date().toISOString(),
   };
 
-  saveData();
-  closeEditModal();
-  render();
+  try {
+    await saveRecord(updatedRecord);
+    records[recordIndex] = updatedRecord;
+    closeEditModal();
+    render();
+  } catch (error) {
+    console.error(error);
+    alert("保存に失敗しました。");
+  }
 }
 
-function deleteRecord(id) {
+async function deleteRecord(id) {
   const record = records.find((item) => item.id === id);
   if (!record) return;
 
   const ok = confirm(`${record.date}の記録を削除しますか？`);
   if (!ok) return;
 
-  records = records.filter((item) => item.id !== id);
-  saveData();
-  render();
+  try {
+    await deleteRecordFromFirebase(id);
+    records = records.filter((item) => item.id !== id);
+    render();
+  } catch (error) {
+    console.error(error);
+    alert("削除に失敗しました。");
+  }
 }
 
-// freee用CSV。freeeのエクセルインポート用サンプルファイルと同じ21列で出力する。
-// 金額はサンプルに合わせて、収入・支出ともプラス値で出力する。
-// もしfreee側で「支出はマイナス金額」として取り込む画面を使う場合は、
-// buildFreeeRow() の amount 部分だけを調整すればよい。
 function buildFreeeCsvRows(targetRecords) {
   const rows = targetRecords
     .slice()
@@ -510,27 +723,27 @@ function buildFreeeRow(record) {
     : freeeConfig.expenseTaxCategory;
 
   return [
-    isIncome ? "収入" : "支出",                  // 収支区分
-    "",                                           // 管理番号
-    record.date,                                  // 発生日
-    "",                                           // 決済期日
-    partnerName,                                  // 取引先
-    "",                                           // 取引先コード
-    record.accountTitle || (isIncome ? "売上高" : "雑費"), // 勘定科目
-    taxCategory,                                  // 税区分
-    amount,                                       // 金額
-    freeeConfig.taxCalculationType,               // 税計算区分
-    "",                                           // 税額。freee側で自動計算・確認する前提
-    record.memo || "",                            // 備考
-    record.category || "",                        // 品目
-    "",                                           // 部門
-    "",                                           // メモタグ
-    record.date,                                  // 決済日
-    freeeConfig.settlementAccount,                // 決済口座
-    amount,                                       // 決済金額
-    "",                                           // セグメント1
-    "",                                           // セグメント2
-    "",                                           // セグメント3
+    isIncome ? "収入" : "支出",
+    "",
+    record.date,
+    "",
+    partnerName,
+    "",
+    record.accountTitle || (isIncome ? "売上高" : "雑費"),
+    taxCategory,
+    amount,
+    freeeConfig.taxCalculationType,
+    "",
+    record.memo || "",
+    record.category || "",
+    "",
+    "",
+    record.date,
+    freeeConfig.settlementAccount,
+    amount,
+    "",
+    "",
+    "",
   ];
 }
 
@@ -553,8 +766,7 @@ function downloadFreeeCsvByType(type) {
   const fileName = `${filePrefix}_${month}.csv`;
 
   downloadCsv(rows, fileName);
-  const count = filtered.length;
-  showMessage(els.csvMessage, `freee${label}CSVを作成しました。${count}件出力しました。`, "success");
+  showMessage(els.csvMessage, `freee${label}CSVを作成しました。${filtered.length}件出力しました。`, "success");
 }
 
 function buildBackupCsvRows(targetRecords) {
@@ -575,6 +787,7 @@ function buildBackupCsvRows(targetRecords) {
   ];
 
   const rows = targetRecords
+    .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((record) => headers.map((key) => record[key] ?? ""));
 
@@ -598,14 +811,14 @@ function importBackupCsv(event) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const imported = parseBackupCsv(reader.result);
       const existingIds = new Set(records.map((record) => record.id));
       const newItems = imported.filter((record) => !existingIds.has(record.id));
 
       records = records.concat(newItems);
-      saveData();
+      await saveData();
       render();
       showMessage(els.csvMessage, `${newItems.length}件を読み込みました。`, "success");
     } catch (error) {
@@ -629,7 +842,7 @@ function parseBackupCsv(text) {
       item[header] = row[index] ?? "";
     });
     item.amount = Number(item.amount || 0);
-    return item;
+    return normalizeRecord(item);
   });
 }
 
@@ -655,7 +868,6 @@ function escapeCsvCell(value) {
   return text;
 }
 
-// ダブルクォート対応の簡易CSVパーサー。
 function parseCsv(text) {
   const rows = [];
   let row = [];

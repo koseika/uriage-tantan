@@ -305,3 +305,7 @@ summary {
     align-items: end;
   }
 }
+
+.auth-card .button-stack {
+  margin-top: 12px;
+}
