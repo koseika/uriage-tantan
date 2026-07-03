@@ -6,6 +6,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/fireba
 import {
   getAuth,
   GoogleAuthProvider,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithRedirect,
   signOut,
@@ -122,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
   populatePartnerSelects();
   populateCategorySelects();
   bindEvents();
+  setAppEnabled(false);
   render();
   initializeFirebase();
 });
@@ -155,6 +157,9 @@ function bindElements() {
   els.downloadBackupCsv = document.getElementById("downloadBackupCsv");
   els.backupImport = document.getElementById("backupImport");
   els.csvMessage = document.getElementById("csvMessage");
+
+  // ログイン前は入力・集計・一覧を表示しない。
+  els.protectedSections = document.querySelectorAll(".app-main > section:not(.auth-card)");
 
   els.authStatus = document.getElementById("authStatus");
   els.loginButton = document.getElementById("loginButton");
@@ -259,6 +264,11 @@ function initializeFirebase() {
   setAppEnabled(false);
   setAuthStatus("ログインしてください。", "note");
 
+  getRedirectResult(auth).catch((error) => {
+    console.error(error);
+    setAuthStatus(formatAuthError(error), "error");
+  });
+
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (!user) {
@@ -287,6 +297,12 @@ function setAuthStatus(text, type) {
 }
 
 function setAppEnabled(enabled) {
+  if (els.protectedSections) {
+    els.protectedSections.forEach((section) => {
+      section.hidden = !enabled;
+    });
+  }
+
   const elements = [
     els.mainForm,
     els.expenseForm,
@@ -313,11 +329,32 @@ function setAppEnabled(enabled) {
 async function loginWithGoogle() {
   if (!auth) return;
   try {
-    await signInWithRedirect(auth, new GoogleAuthProvider());
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    setAuthStatus("Googleログイン画面へ移動します。", "note");
+    await signInWithRedirect(auth, provider);
   } catch (error) {
     console.error(error);
-    setAuthStatus("ログインに失敗しました。Firebaseの認証設定を確認してください。", "error");
+    setAuthStatus(formatAuthError(error), "error");
   }
+}
+
+function formatAuthError(error) {
+  const code = error && error.code ? error.code : "unknown";
+
+  if (code === "auth/unauthorized-domain") {
+    return "ログインに失敗しました。Firebase Authenticationの承認済みドメインに koseika.github.io を追加してください。";
+  }
+
+  if (code === "auth/operation-not-allowed") {
+    return "ログインに失敗しました。Firebase AuthenticationでGoogleログインを有効にしてください。";
+  }
+
+  if (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user") {
+    return "ログイン画面を開けませんでした。もう一度Googleでログインを押してください。";
+  }
+
+  return `ログインに失敗しました。Firebaseの認証設定を確認してください。（${code}）`;
 }
 
 async function logout() {
