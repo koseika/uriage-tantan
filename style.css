@@ -1,0 +1,307 @@
+:root {
+  --bg: #f6f3ee;
+  --card: #fffaf3;
+  --text: #2d261f;
+  --muted: #75695f;
+  --line: #e6dccf;
+  --accent: #8b5e34;
+  --accent-dark: #6f4724;
+  --danger: #a33a2b;
+  --success: #2f7356;
+  --shadow: 0 8px 24px rgba(45, 38, 31, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.app-header {
+  padding: 24px 16px 14px;
+  text-align: center;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.7rem;
+  letter-spacing: 0.04em;
+}
+
+.app-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.app-main {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 0 12px 40px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin: 14px 0;
+}
+
+.card h2 {
+  margin: 0 0 14px;
+  font-size: 1.15rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.form-spacing {
+  margin-top: 14px;
+}
+
+label {
+  display: grid;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+textarea {
+  resize: vertical;
+}
+
+button,
+.file-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 16px;
+  font-weight: 800;
+  text-align: center;
+  cursor: pointer;
+}
+
+.primary-button {
+  background: var(--accent);
+  color: #fff;
+}
+
+.primary-button:active {
+  background: var(--accent-dark);
+}
+
+.secondary-button,
+.file-button {
+  background: #efe4d6;
+  color: var(--text);
+}
+
+.file-button input {
+  display: none;
+}
+
+.message {
+  min-height: 1.2em;
+  margin: 0;
+  font-weight: 700;
+}
+
+.message.success {
+  color: var(--success);
+}
+
+.message.error {
+  color: var(--danger);
+}
+
+.section-head {
+  display: grid;
+  gap: 10px;
+}
+
+.month-filter {
+  font-weight: 700;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.summary-grid div {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px;
+  text-align: center;
+}
+
+.summary-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.summary-grid strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1rem;
+}
+
+.category-summary {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.category-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 4px;
+}
+
+.button-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.note {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 10px 0 0;
+}
+
+.record-list {
+  display: grid;
+  gap: 10px;
+}
+
+.record-item {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.record-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.record-title {
+  margin: 0;
+  font-weight: 800;
+}
+
+.record-meta {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.record-amount {
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.record-amount.income {
+  color: var(--success);
+}
+
+.record-amount.expense {
+  color: var(--danger);
+}
+
+.record-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.record-actions button {
+  padding: 8px 12px;
+  font-size: 0.86rem;
+}
+
+.delete-button {
+  background: #f2d9d5;
+  color: var(--danger);
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 1.05rem;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 38, 31, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  z-index: 10;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  width: min(520px, 100%);
+  max-height: 92vh;
+  overflow: auto;
+  background: var(--card);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 700px) {
+  .section-head {
+    grid-template-columns: 1fr 220px;
+    align-items: end;
+  }
+}

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>売上記録タンタン</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>売上記録タンタン</h1>
+    <p>会計ソフトではなく、日々の記録アプリです。</p>
+  </header>
+
+  <main class="app-main">
+    <section class="card">
+      <h2>基本入力</h2>
+      <form id="mainForm" class="form-grid">
+        <label>
+          日付
+          <input type="date" id="mainDate" required />
+        </label>
+
+        <label>
+          取引先
+          <select id="mainPartner" required></select>
+        </label>
+
+        <label>
+          売上金額
+          <input type="number" id="mainIncome" min="0" inputmode="numeric" placeholder="例：15000" />
+        </label>
+
+        <label>
+          交通費
+          <input type="number" id="mainTransport" min="0" inputmode="numeric" placeholder="自動入力" />
+        </label>
+
+        <label>
+          メモ
+          <textarea id="mainMemo" rows="2" placeholder="任意"></textarea>
+        </label>
+
+        <button type="submit" class="primary-button">登録</button>
+        <p id="mainMessage" class="message" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary>経費だけ追加</summary>
+        <form id="expenseForm" class="form-grid form-spacing">
+          <label>
+            日付
+            <input type="date" id="expenseDate" required />
+          </label>
+
+          <label>
+            経費カテゴリ
+            <select id="expenseCategory" required></select>
+          </label>
+
+          <label>
+            取引先（任意）
+            <select id="expensePartner"></select>
+          </label>
+
+          <label>
+            金額
+            <input type="number" id="expenseAmount" min="0" inputmode="numeric" required placeholder="例：480" />
+          </label>
+
+          <label>
+            メモ
+            <textarea id="expenseMemo" rows="2" placeholder="任意"></textarea>
+          </label>
+
+          <button type="submit" class="secondary-button">経費を追加</button>
+          <p id="expenseMessage" class="message" aria-live="polite"></p>
+        </form>
+      </details>
+    </section>
+
+    <section class="card summary-card">
+      <div class="section-head">
+        <h2>月別集計</h2>
+        <label class="month-filter">
+          表示月
+          <input type="month" id="monthFilter" />
+        </label>
+      </div>
+      <div class="summary-grid">
+        <div>
+          <span>売上</span>
+          <strong id="summaryIncome">0円</strong>
+        </div>
+        <div>
+          <span>経費</span>
+          <strong id="summaryExpense">0円</strong>
+        </div>
+        <div>
+          <span>利益</span>
+          <strong id="summaryProfit">0円</strong>
+        </div>
+      </div>
+      <div id="categorySummary" class="category-summary"></div>
+    </section>
+
+    <section class="card">
+      <h2>CSV出力・バックアップ</h2>
+      <div class="button-stack">
+        <button type="button" id="downloadFreeeCsv" class="primary-button">freee取込用CSVを出力</button>
+        <button type="button" id="downloadBackupCsv" class="secondary-button">バックアップCSVを出力</button>
+        <label class="file-button">
+          バックアップCSVを読み込む
+          <input type="file" id="backupImport" accept=".csv,text/csv" />
+        </label>
+      </div>
+      <p class="note">バックアップCSVの読み込みは、現在のデータに追加します。</p>
+      <p id="csvMessage" class="message" aria-live="polite"></p>
+    </section>
+
+    <section class="card">
+      <h2>一覧</h2>
+      <div id="recordList" class="record-list"></div>
+    </section>
+  </main>
+
+  <div id="editModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <div class="modal-content">
+      <h2 id="editTitle">記録を編集</h2>
+      <form id="editForm" class="form-grid">
+        <input type="hidden" id="editId" />
+
+        <label>
+          日付
+          <input type="date" id="editDate" required />
+        </label>
+
+        <label>
+          区分
+          <select id="editType" required>
+            <option value="income">売上</option>
+            <option value="expense">経費</option>
+          </select>
+        </label>
+
+        <label>
+          取引先
+          <select id="editPartner"></select>
+        </label>
+
+        <label id="editCategoryLabel">
+          経費カテゴリ
+          <select id="editCategory"></select>
+        </label>
+
+        <label>
+          金額
+          <input type="number" id="editAmount" min="0" inputmode="numeric" required />
+        </label>
+
+        <label>
+          メモ
+          <textarea id="editMemo" rows="2"></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button type="submit" class="primary-button">保存</button>
+          <button type="button" id="cancelEdit" class="secondary-button">キャンセル</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
