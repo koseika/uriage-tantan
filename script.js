@@ -1,13 +1,13 @@
 // 売上記録タンタン Ver2.0 Firebase版
 // 会計処理は行わず、日々の記録とCSV出力に役割を限定する。
-// 保存先はlocalStorageではなく Firebase Firestore。
+// 保存先は Firebase Firestore。ブラウザごとのローカル保存は使わない。
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
   getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
@@ -22,15 +22,14 @@ import {
 // ここをFirebase ConsoleのWebアプリ設定に差し替える。
 // apiKey自体は秘密鍵ではありません。安全性はFirestoreルールで守ります。
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyAj_h3IKCVCbqlw1oakI4s86onhYkMmxhk",
+  authDomain: "uriage-tantan.firebaseapp.com",
+  projectId: "uriage-tantan",
+  storageBucket: "uriage-tantan.firebasestorage.app",
+  messagingSenderId: "341160628299",
+  appId: "1:341160628299:web:ab0344c5479fb8e32ffdce",
 };
 
-const OLD_LOCAL_STORAGE_KEY = "tantanRecordsV1";
 const COLLECTION_NAME = "records";
 
 const partners = [
@@ -160,7 +159,6 @@ function bindElements() {
   els.authStatus = document.getElementById("authStatus");
   els.loginButton = document.getElementById("loginButton");
   els.logoutButton = document.getElementById("logoutButton");
-  els.migrateLocalButton = document.getElementById("migrateLocalButton");
 
   els.editModal = document.getElementById("editModal");
   els.editForm = document.getElementById("editForm");
@@ -238,7 +236,6 @@ function bindEvents() {
 
   els.loginButton.addEventListener("click", loginWithGoogle);
   els.logoutButton.addEventListener("click", logout);
-  els.migrateLocalButton.addEventListener("click", migrateOldLocalStorageData);
 
   els.editForm.addEventListener("submit", handleEditSubmit);
   els.editType.addEventListener("change", updateEditCategoryVisibility);
@@ -297,7 +294,6 @@ function setAppEnabled(enabled) {
     els.downloadFreeeExpenseCsv,
     els.downloadBackupCsv,
     els.backupImport,
-    els.migrateLocalButton,
   ];
 
   elements.forEach((element) => {
@@ -317,7 +313,7 @@ function setAppEnabled(enabled) {
 async function loginWithGoogle() {
   if (!auth) return;
   try {
-    await signInWithPopup(auth, new GoogleAuthProvider());
+    await signInWithRedirect(auth, new GoogleAuthProvider());
   } catch (error) {
     console.error(error);
     setAuthStatus("ログインに失敗しました。Firebaseの認証設定を確認してください。", "error");
@@ -377,33 +373,6 @@ function normalizeRecord(record) {
     createdAt: record.createdAt || new Date().toISOString(),
     updatedAt: record.updatedAt || new Date().toISOString(),
   };
-}
-
-async function migrateOldLocalStorageData() {
-  if (!currentUser) {
-    showMessage(els.csvMessage, "先にログインしてください。", "error");
-    return;
-  }
-
-  const raw = localStorage.getItem(OLD_LOCAL_STORAGE_KEY);
-  if (!raw) {
-    showMessage(els.csvMessage, "このブラウザに移行できる旧データはありません。", "error");
-    return;
-  }
-
-  try {
-    const oldRecords = JSON.parse(raw).map(normalizeRecord);
-    const existingIds = new Set(records.map((record) => record.id));
-    const newItems = oldRecords.filter((record) => !existingIds.has(record.id));
-
-    records = records.concat(newItems);
-    await saveData();
-    render();
-    showMessage(els.csvMessage, `${newItems.length}件をFirebaseへ移行しました。`, "success");
-  } catch (error) {
-    console.error(error);
-    showMessage(els.csvMessage, "旧データの移行に失敗しました。", "error");
-  }
 }
 
 function updateDefaultTransportation() {
