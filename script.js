@@ -121,7 +121,8 @@ function bindElements() {
   els.categorySummary = document.getElementById("categorySummary");
   els.recordList = document.getElementById("recordList");
 
-  els.downloadFreeeCsv = document.getElementById("downloadFreeeCsv");
+  els.downloadFreeeIncomeCsv = document.getElementById("downloadFreeeIncomeCsv");
+  els.downloadFreeeExpenseCsv = document.getElementById("downloadFreeeExpenseCsv");
   els.downloadBackupCsv = document.getElementById("downloadBackupCsv");
   els.backupImport = document.getElementById("backupImport");
   els.csvMessage = document.getElementById("csvMessage");
@@ -195,7 +196,8 @@ function bindEvents() {
   els.expenseForm.addEventListener("submit", handleExpenseSubmit);
   els.monthFilter.addEventListener("change", render);
 
-  els.downloadFreeeCsv.addEventListener("click", downloadFreeeCsv);
+  els.downloadFreeeIncomeCsv.addEventListener("click", () => downloadFreeeCsvByType("income"));
+  els.downloadFreeeExpenseCsv.addEventListener("click", () => downloadFreeeCsvByType("expense"));
   els.downloadBackupCsv.addEventListener("click", downloadBackupCsv);
   els.backupImport.addEventListener("change", importBackupCsv);
 
@@ -532,18 +534,27 @@ function buildFreeeRow(record) {
   ];
 }
 
-function downloadFreeeCsv() {
-  const filtered = getFilteredRecords().slice().reverse();
+function downloadFreeeCsvByType(type) {
+  const filtered = getFilteredRecords()
+    .filter((record) => record.type === type)
+    .slice()
+    .reverse();
+
   if (filtered.length === 0) {
-    showMessage(els.csvMessage, "出力するデータがありません。", "error");
+    const label = type === "income" ? "収入" : "支出";
+    showMessage(els.csvMessage, `出力する${label}データがありません。`, "error");
     return;
   }
 
   const rows = buildFreeeCsvRows(filtered);
-  const fileName = `freee_tantan_${els.monthFilter.value || "all"}.csv`;
+  const month = els.monthFilter.value || "all";
+  const filePrefix = type === "income" ? "freee_income_tantan" : "freee_expense_tantan";
+  const label = type === "income" ? "収入" : "支出";
+  const fileName = `${filePrefix}_${month}.csv`;
+
   downloadCsv(rows, fileName);
   const count = filtered.length;
-  showMessage(els.csvMessage, `freee取込用CSVを作成しました。${count}件出力しました。`, "success");
+  showMessage(els.csvMessage, `freee${label}CSVを作成しました。${count}件出力しました。`, "success");
 }
 
 function buildBackupCsvRows(targetRecords) {
