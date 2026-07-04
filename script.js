@@ -1,4 +1,4 @@
-// 売上記録タンタン Ver2.2 Firebase版（Googleログインをpopup方式へ変更）
+// 売上記録タンタン Ver2.3 Firebase版（ログイン後UIを整理）
 // 会計処理は行わず、日々の記録とCSV出力に役割を限定する。
 // 保存先は Firebase Firestore。ブラウザごとのローカル保存は使わない。
 
@@ -160,9 +160,13 @@ function bindElements() {
   // ログイン前は入力・集計・一覧を表示しない。
   els.protectedSections = document.querySelectorAll(".app-main > section:not(.auth-card)");
 
+  els.authCard = document.getElementById("authCard");
+  els.userCard = document.getElementById("userCard");
+  els.userStatus = document.getElementById("userStatus");
   els.authStatus = document.getElementById("authStatus");
   els.loginButton = document.getElementById("loginButton");
   els.logoutButton = document.getElementById("logoutButton");
+  els.topLogoutButton = document.getElementById("topLogoutButton");
 
   els.editModal = document.getElementById("editModal");
   els.editForm = document.getElementById("editForm");
@@ -239,7 +243,8 @@ function bindEvents() {
   els.backupImport.addEventListener("change", importBackupCsv);
 
   els.loginButton.addEventListener("click", loginWithGoogle);
-  els.logoutButton.addEventListener("click", logout);
+  if (els.logoutButton) els.logoutButton.addEventListener("click", logout);
+  if (els.topLogoutButton) els.topLogoutButton.addEventListener("click", logout);
 
   els.editForm.addEventListener("submit", handleEditSubmit);
   els.editType.addEventListener("change", updateEditCategoryVisibility);
@@ -291,10 +296,18 @@ function setAuthStatus(text, type) {
 }
 
 function setAppEnabled(enabled) {
+  // ログイン前はログインカードだけ表示し、ログイン後は入力エリアだけ表示する。
+  if (els.authCard) els.authCard.hidden = enabled;
+
   if (els.protectedSections) {
     els.protectedSections.forEach((section) => {
       section.hidden = !enabled;
     });
+  }
+
+  if (els.userStatus) {
+    const userLabel = currentUser ? (currentUser.email || currentUser.uid) : "";
+    els.userStatus.textContent = userLabel ? `ログイン中：${userLabel}` : "ログイン中";
   }
 
   const elements = [
@@ -318,6 +331,7 @@ function setAppEnabled(enabled) {
 
   if (els.loginButton) els.loginButton.disabled = enabled || !isFirebaseConfigured();
   if (els.logoutButton) els.logoutButton.disabled = !enabled;
+  if (els.topLogoutButton) els.topLogoutButton.disabled = !enabled;
 }
 
 async function loginWithGoogle() {

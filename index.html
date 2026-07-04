@@ -13,14 +13,20 @@
   </header>
 
   <main class="app-main">
-    <section class="card auth-card">
+    <section class="card auth-card" id="authCard">
       <h2>ログイン</h2>
       <p id="authStatus" class="note">Firebase設定を確認しています。</p>
       <div class="button-stack">
         <button type="button" id="loginButton" class="primary-button">Googleでログイン</button>
-        <button type="button" id="logoutButton" class="secondary-button">ログアウト</button>
       </div>
       <p class="note">データはFirebaseに保存します。Brave・Safari・PCから同じデータを見られます。</p>
+    </section>
+
+    <section class="card user-card" id="userCard" hidden>
+      <div class="user-status-row">
+        <p id="userStatus" class="message success">ログイン中</p>
+        <button type="button" id="topLogoutButton" class="secondary-button small-button">ログアウト</button>
+      </div>
     </section>
     <section class="card">
       <h2>基本入力</h2>
