@@ -1,20 +1,24 @@
 :root {
-  --bg: #f7f2ea;
-  --bg-soft: #fbf7f0;
-  --card: rgba(255, 253, 248, 0.94);
-  --text: #31271f;
-  --muted: #817468;
-  --line: #eadfce;
-  --line-strong: #dac8b2;
-  --accent: #9a6a3a;
-  --accent-dark: #74481f;
-  --accent-soft: #f1e3d2;
-  --danger: #b34a3b;
-  --danger-soft: #f8e4e0;
-  --success: #35765d;
-  --success-soft: #e0f0e8;
-  --shadow: 0 14px 34px rgba(67, 49, 31, 0.09);
-  --radius-lg: 22px;
+  --bg: #f7f4ee;
+  --bg-soft: #fbfaf6;
+  --card: #fffefa;
+  --card-soft: #f4f8f1;
+  --text: #233227;
+  --text-strong: #163a24;
+  --muted: #7f8178;
+  --line: #dbe6d8;
+  --line-warm: #eee5d9;
+  --accent: #285a37;
+  --accent-dark: #1e472b;
+  --accent-soft: #e7f0e7;
+  --accent-pale: #f3f8f1;
+  --danger: #c4564d;
+  --danger-soft: #fff0ee;
+  --success: #2f7a52;
+  --success-soft: #e8f3ed;
+  --shadow: 0 14px 34px rgba(30, 60, 38, 0.08);
+  --shadow-soft: 0 8px 22px rgba(30, 60, 38, 0.055);
+  --radius-lg: 24px;
   --radius-md: 16px;
 }
 
@@ -29,50 +33,74 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", YuGothic, "Noto Sans JP", system-ui, sans-serif;
+  font-family: "Zen Kaku Gothic New", -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", YuGothic, system-ui, sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(236, 213, 184, 0.55), transparent 34rem),
-    linear-gradient(180deg, #fbf5ec 0%, var(--bg) 48%, #f4ecdf 100%);
+    radial-gradient(circle at top left, rgba(225, 236, 222, 0.9), transparent 28rem),
+    radial-gradient(circle at bottom right, rgba(239, 229, 213, 0.75), transparent 28rem),
+    linear-gradient(180deg, #fffdf9 0%, var(--bg) 45%, #f4efe7 100%);
   color: var(--text);
-  line-height: 1.65;
+  line-height: 1.72;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .app-header {
   width: min(760px, 100%);
   margin: 0 auto;
-  padding: 30px 18px 8px;
+  padding: 32px 22px 12px;
 }
 
 .app-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 0;
-  font-size: clamp(1.85rem, 8vw, 2.55rem);
-  line-height: 1.12;
-  letter-spacing: 0.055em;
+  color: var(--text-strong);
+  font-size: clamp(1.72rem, 7.2vw, 2.45rem);
+  line-height: 1.15;
+  letter-spacing: 0.03em;
   font-weight: 900;
+}
+
+.app-header h1::before {
+  content: "✧";
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 50%;
+  background: #dfeadd;
+  color: var(--accent);
+  font-size: 1.05rem;
+  box-shadow: inset 0 0 0 1px rgba(40, 90, 55, 0.05);
 }
 
 .app-main {
   width: min(760px, 100%);
   margin: 0 auto;
-  padding: 0 14px 44px;
+  padding: 0 18px 48px;
 }
 
 .card {
-  background: var(--card);
-  border: 1px solid rgba(234, 223, 206, 0.92);
+  background: rgba(255, 254, 250, 0.94);
+  border: 1px solid var(--line-warm);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  padding: 20px;
-  margin: 14px 0;
+  box-shadow: var(--shadow-soft);
+  padding: 22px;
+  margin: 16px 0;
   backdrop-filter: blur(8px);
 }
 
 .card h2 {
-  margin: 0 0 16px;
-  font-size: 1.08rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+  color: var(--text-strong);
+  font-size: 1.14rem;
   line-height: 1.35;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.035em;
   font-weight: 900;
 }
 
@@ -87,11 +115,11 @@ body {
 
 label {
   display: grid;
-  gap: 6px;
-  color: var(--text);
+  gap: 7px;
+  color: #263228;
   font-weight: 800;
-  font-size: 0.88rem;
-  letter-spacing: 0.015em;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
 }
 
 input,
@@ -105,10 +133,10 @@ input,
 select,
 textarea {
   width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 15px;
+  border: 1px solid #dde4dc;
+  border-radius: 14px;
   padding: 13px 14px;
-  background: #fffefb;
+  background: #fff;
   color: var(--text);
   font-size: 1rem;
   outline: none;
@@ -118,9 +146,14 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(154, 106, 58, 0.12);
-  background: #fff;
+  border-color: #8aa889;
+  box-shadow: 0 0 0 4px rgba(40, 90, 55, 0.1);
+  background: #fffefc;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #a8aaa3;
 }
 
 textarea {
@@ -136,7 +169,7 @@ button,
   letter-spacing: 0.02em;
   text-align: center;
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
+  transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -146,15 +179,22 @@ button:active,
 }
 
 .primary-button {
-  background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+  background: linear-gradient(180deg, #2f6a40, var(--accent-dark));
   color: #fff;
-  box-shadow: 0 8px 18px rgba(116, 72, 31, 0.18);
+  box-shadow: 0 9px 18px rgba(30, 71, 43, 0.18);
 }
 
 .secondary-button,
 .file-button {
-  background: var(--accent-soft);
-  color: #3b2b1f;
+  background: #eef3ea;
+  color: var(--accent-dark);
+  border: 1px solid #c9dac7;
+}
+
+.delete-button {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid #ffd2cd;
 }
 
 .file-button input {
@@ -176,10 +216,16 @@ button:active,
   color: var(--danger);
 }
 
+.note {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 10px 0 0;
+}
+
 .section-head {
   display: grid;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .month-filter {
@@ -189,14 +235,14 @@ button:active,
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 9px;
+  gap: 10px;
 }
 
 .summary-grid div {
-  background: linear-gradient(180deg, #fffefb, #fbf7f0);
+  background: linear-gradient(180deg, #fbfef9, #f3f8f1);
   border: 1px solid var(--line);
   border-radius: 18px;
-  padding: 13px 8px;
+  padding: 14px 8px;
   text-align: center;
 }
 
@@ -210,13 +256,14 @@ button:active,
 .summary-grid strong {
   display: block;
   margin-top: 3px;
-  font-size: clamp(0.95rem, 4vw, 1.16rem);
-  font-weight: 950;
+  color: var(--accent-dark);
+  font-size: clamp(0.98rem, 4vw, 1.18rem);
+  font-weight: 900;
   letter-spacing: -0.02em;
 }
 
 .category-summary {
-  margin-top: 14px;
+  margin-top: 16px;
   display: grid;
   gap: 7px;
   color: var(--muted);
@@ -227,19 +274,17 @@ button:active,
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px dashed var(--line-strong);
-  padding: 0 2px 6px;
+  border-bottom: 1px dashed #d8dfd2;
+  padding: 0 2px 7px;
+}
+
+.category-summary strong {
+  color: var(--text-strong);
 }
 
 .button-stack {
   display: grid;
   gap: 10px;
-}
-
-.note {
-  color: var(--muted);
-  font-size: 0.84rem;
-  margin: 10px 0 0;
 }
 
 .record-list {
@@ -248,10 +293,10 @@ button:active,
 }
 
 .record-item {
-  background: #fffefb;
-  border: 1px solid var(--line);
+  background: #fff;
+  border: 1px solid #e2e9df;
   border-radius: 18px;
-  padding: 13px;
+  padding: 14px;
 }
 
 .record-main {
@@ -263,6 +308,7 @@ button:active,
 
 .record-title {
   margin: 0;
+  color: var(--text);
   font-weight: 900;
   letter-spacing: 0.01em;
 }
@@ -274,7 +320,7 @@ button:active,
 }
 
 .record-amount {
-  font-weight: 950;
+  font-weight: 900;
   white-space: nowrap;
   letter-spacing: -0.02em;
 }
@@ -290,7 +336,7 @@ button:active,
 .record-actions {
   display: flex;
   gap: 8px;
-  margin-top: 11px;
+  margin-top: 12px;
 }
 
 .record-actions button {
@@ -298,13 +344,9 @@ button:active,
   font-size: 0.86rem;
 }
 
-.delete-button {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-
 summary {
   cursor: pointer;
+  color: var(--text-strong);
   font-weight: 900;
   font-size: 1.02rem;
   letter-spacing: 0.03em;
@@ -314,7 +356,7 @@ summary {
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(45, 38, 31, 0.45);
+  background: rgba(28, 44, 33, 0.46);
   display: grid;
   place-items: center;
   padding: 14px;
@@ -347,7 +389,9 @@ summary {
 }
 
 .user-card {
-  padding: 14px 16px;
+  padding: 13px 16px;
+  background: rgba(244, 248, 241, 0.94);
+  border-color: var(--line);
 }
 
 .user-status-row {
@@ -366,13 +410,22 @@ summary {
   font-size: 0.9rem;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 @media (min-width: 700px) {
   .app-header {
     padding-top: 42px;
   }
 
+  .app-main {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
   .card {
-    padding: 24px;
+    padding: 25px;
   }
 
   .section-head {
@@ -393,6 +446,11 @@ summary {
 }
 
 @media (max-width: 380px) {
+  .app-main {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
   .summary-grid {
     grid-template-columns: 1fr;
   }
