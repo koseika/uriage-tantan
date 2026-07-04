@@ -1,4 +1,4 @@
-// 売上記録タンタン Ver2.4 Firebase版（ログイン判定中の表示を整理）
+// 売上記録タンタン Ver2.5 Firebase版（取引先別チェック対応）
 // 会計処理は行わず、日々の記録とCSV出力に役割を限定する。
 // 保存先は Firebase Firestore。ブラウザごとのローカル保存は使わない。
 
@@ -145,6 +145,7 @@ function bindElements() {
   els.expenseMessage = document.getElementById("expenseMessage");
 
   els.monthFilter = document.getElementById("monthFilter");
+  els.summaryPartnerFilter = document.getElementById("summaryPartnerFilter");
   els.summaryIncome = document.getElementById("summaryIncome");
   els.summaryExpense = document.getElementById("summaryExpense");
   els.summaryProfit = document.getElementById("summaryProfit");
@@ -193,18 +194,20 @@ function initializeDates() {
 
 function populatePartnerSelects() {
   setPartnerOptions(els.mainPartner, false);
-  setPartnerOptions(els.expensePartner, true);
-  setPartnerOptions(els.editPartner, true);
+  setPartnerOptions(els.expensePartner, true, "選択なし");
+  setPartnerOptions(els.editPartner, true, "選択なし");
+  setPartnerOptions(els.summaryPartnerFilter, true, "すべて");
   updateDefaultTransportation();
 }
 
-function setPartnerOptions(select, includeEmpty) {
+function setPartnerOptions(select, includeEmpty, emptyLabel = "選択なし") {
+  if (!select) return;
   select.innerHTML = "";
 
   if (includeEmpty) {
     const empty = document.createElement("option");
     empty.value = "";
-    empty.textContent = "選択なし";
+    empty.textContent = emptyLabel;
     select.appendChild(empty);
   }
 
@@ -236,6 +239,7 @@ function bindEvents() {
   els.mainForm.addEventListener("submit", handleMainSubmit);
   els.expenseForm.addEventListener("submit", handleExpenseSubmit);
   els.monthFilter.addEventListener("change", render);
+  if (els.summaryPartnerFilter) els.summaryPartnerFilter.addEventListener("change", render);
 
   els.downloadFreeeIncomeCsv.addEventListener("click", () => downloadFreeeCsvByType("income"));
   els.downloadFreeeExpenseCsv.addEventListener("click", () => downloadFreeeCsvByType("expense"));
@@ -566,6 +570,20 @@ function render() {
 
 function getFilteredRecords() {
   const month = els.monthFilter.value;
+  const partnerId = els.summaryPartnerFilter ? els.summaryPartnerFilter.value : "";
+  return records
+    .filter((record) => !month || record.date.startsWith(month))
+    .filter((record) => !partnerId || record.partnerId === partnerId)
+    .sort((a, b) => {
+      if (a.date === b.date) return a.createdAt.localeCompare(b.createdAt);
+      return b.date.localeCompare(a.date);
+    });
+}
+
+function getCsvTargetRecords() {
+  // CSV出力はfreee取込用なので、取引先フィルターの影響を受けない。
+  // 表示月だけを対象にする。
+  const month = els.monthFilter.value;
   return records
     .filter((record) => !month || record.date.startsWith(month))
     .sort((a, b) => {
@@ -762,7 +780,7 @@ function buildFreeeRow(record) {
 }
 
 function downloadFreeeCsvByType(type) {
-  const filtered = getFilteredRecords()
+  const filtered = getCsvTargetRecords()
     .filter((record) => record.type === type)
     .slice()
     .reverse();
