@@ -28,7 +28,7 @@
         <button type="button" id="topLogoutButton" class="secondary-button small-button">ログアウト</button>
       </div>
     </section>
-    <section class="card">
+    <section class="card" hidden>
       <h2>基本入力</h2>
       <form id="mainForm" class="form-grid">
         <label>
@@ -61,7 +61,7 @@
       </form>
     </section>
 
-    <section class="card">
+    <section class="card" hidden>
       <details>
         <summary>経費だけ追加</summary>
         <form id="expenseForm" class="form-grid form-spacing">
@@ -96,7 +96,7 @@
       </details>
     </section>
 
-    <section class="card summary-card">
+    <section class="card summary-card" hidden>
       <div class="section-head">
         <h2>月別集計</h2>
         <label class="month-filter">
@@ -121,7 +121,7 @@
       <div id="categorySummary" class="category-summary"></div>
     </section>
 
-    <section class="card">
+    <section class="card" hidden>
       <h2>CSV出力・バックアップ</h2>
       <div class="button-stack">
         <button type="button" id="downloadFreeeIncomeCsv" class="primary-button">freee収入CSVを出力</button>
@@ -136,7 +136,7 @@
       <p id="csvMessage" class="message" aria-live="polite"></p>
     </section>
 
-    <section class="card">
+    <section class="card" hidden>
       <h2>一覧</h2>
       <div id="recordList" class="record-list"></div>
     </section>
